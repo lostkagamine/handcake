@@ -1,0 +1,2 @@
+*.lua linguist-language=Lua
+examples/** linguist-detectable
