@@ -1,0 +1,16 @@
+[package]
+name = "handcake"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.57"
+clap = { version = "3.1.18", features = ["derive"] }
+input-linux = { version = "0.5.0", features = ["serde", "serde_derive", "with-tokio"] }
+log = "0.4.17"
+mlua = { version = "0.7.4", features = ["async", "macros", "serialize", "send", "vendored", "lua54"] }
+pretty_env_logger = "0.4.0"
+serde = { version = "1.0.137", features = ["derive"] }
+tokio = { version = "1.18.2", features = ["full"] }
