@@ -1,6 +1,12 @@
-use std::path::{PathBuf, Path};
+pub mod api;
+
+use std::{path::{PathBuf, Path}, os::unix::prelude::OpenOptionsExt, sync::{Arc, mpsc::{Sender, Receiver}}};
 use clap::Parser;
+use midi_control::MidiMessage;
+use parking_lot::Mutex;
 use std::os::unix::io::AsRawFd;
+
+use crate::api::ApiProvider;
 
 #[macro_use]
 extern crate log;
@@ -26,6 +32,19 @@ macro_rules! fatal_error {
     };
 }
 
+#[derive(Debug)]
+pub enum Message {
+    Midi(MidiMessage),
+}
+
+lazy_static::lazy_static! {
+    static ref MESSAGE: (Arc<Mutex<Sender<Message>>>, Arc<Mutex<Receiver<Message>>>) = {
+        let (send, recv) = std::sync::mpsc::channel();
+
+        (Arc::new(Mutex::new(send)), Arc::new(Mutex::new(recv)))
+    };
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     pretty_env_logger::init();
@@ -43,7 +62,10 @@ async fn main() -> anyhow::Result<()> {
         if !uinput_path.exists() {
             fatal_error!("Could not find /dev/uinput. Is uinput installed?");
         }
-        let a = std::fs::File::open(&uinput_path)?;
+        let a = std::fs::OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_NONBLOCK)
+            .open(uinput_path)?;
         a.as_raw_fd()
     };
     let uinput = input_linux::UInputHandle::new(uinput_fd);
@@ -53,12 +75,33 @@ async fn main() -> anyhow::Result<()> {
     let lua = mlua::Lua::new();
     let a = lua.load(&script_text);
     let a = a.set_name(&script_path.to_string_lossy().as_bytes())?;
+
+    let globals = lua.globals();
+    // load the API here
+
+    api::midi::Midi::register_api(&lua);
+
+
     debug!("Evaluating initial script");
+
     a.exec()?;
     debug!("Calling on_script_init()");
+
     let globals = lua.globals();
     let on_script_init = globals.get::<&str, mlua::Function>("on_script_init")?;
     on_script_init.call::<(), ()>(())?;
+
+    debug!("Receiving messages");
+    
+    std::thread::spawn(|| {
+        let (_, recv) = MESSAGE.clone();
+
+        let lock = recv.lock();
+        while let Ok(x) = lock.recv() {
+            debug!("{:?}", x);
+        }
+    }).join().unwrap();
+
 
     Ok(())
 }

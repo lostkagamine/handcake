@@ -9,8 +9,13 @@ edition = "2021"
 anyhow = "1.0.57"
 clap = { version = "3.1.18", features = ["derive"] }
 input-linux = { version = "0.5.0", features = ["serde", "serde_derive", "with-tokio"] }
+lazy_static = "1.4.0"
+libc = "0.2.126"
 log = "0.4.17"
+midi-control = "0.2.0"
+midir = "0.8.0"
 mlua = { version = "0.7.4", features = ["async", "macros", "serialize", "send", "vendored", "lua54"] }
+parking_lot = "0.12.0"
 pretty_env_logger = "0.4.0"
 serde = { version = "1.0.137", features = ["derive"] }
 tokio = { version = "1.18.2", features = ["full"] }
