@@ -1,5 +1,8 @@
 pub mod midi;
+pub mod gamepad;
 
 pub trait ApiProvider {
-    fn register_api(l: &mlua::Lua) -> anyhow::Result<()>;
+    type Arguments;
+
+    fn register_api(l: &mlua::Lua, args: Self::Arguments) -> anyhow::Result<()>;
 }

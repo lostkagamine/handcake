@@ -48,7 +48,11 @@ lazy_static::lazy_static! {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    pretty_env_logger::init();
+    if cfg!(debug_assertions) {
+        pretty_env_logger::formatted_builder().filter_level(log::LevelFilter::Debug).init();
+    } else {
+        pretty_env_logger::init();
+    }
 
     let cli = HandcakeApplication::parse();
     let script_path = cli.script;
@@ -65,9 +69,10 @@ async fn main() -> anyhow::Result<()> {
         }
         let a = std::fs::OpenOptions::new()
             .read(true)
+            .write(true)
             .custom_flags(libc::O_NONBLOCK)
             .open(uinput_path)?;
-        a.as_raw_fd()
+        a
     };
     let uinput = input_linux::UInputHandle::new(uinput_fd);
     debug!("uinput opened");
@@ -77,7 +82,8 @@ async fn main() -> anyhow::Result<()> {
     let a = lua.load(&script_text);
     let a = a.set_name(&script_path.to_string_lossy().as_bytes())?;
 
-    api::midi::Midi::register_api(&lua).unwrap();
+    api::midi::Midi::register_api(&lua, ()).unwrap();
+    api::gamepad::Gamepad::register_api(&lua, (uinput,)).unwrap();
 
     debug!("Evaluating initial script");
 

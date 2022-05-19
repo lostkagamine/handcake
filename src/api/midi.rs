@@ -30,7 +30,9 @@ lazy_static::lazy_static! {
 
 pub struct Midi;
 impl ApiProvider for Midi {
-    fn register_api(l: &mlua::Lua) -> anyhow::Result<()> {
+    type Arguments = ();
+
+    fn register_api(l: &mlua::Lua, _: Self::Arguments) -> anyhow::Result<()> {
         let tab = l.create_table()?;
 
 
