@@ -124,12 +124,14 @@ async fn main() -> anyhow::Result<()> {
                         tab.set("channel", util::midi_channel_to_num(channel)).unwrap();
                         tab.set("key", key.key).unwrap();
                         tab.set("vel", key.value).unwrap();
+                        tab.set("is_note", true).unwrap();
                     },
                     MidiMessage::NoteOff(channel, key) => {
                         tab.set("event", "note_off").unwrap();
                         tab.set("channel", util::midi_channel_to_num(channel)).unwrap();
                         tab.set("key", key.key).unwrap();
                         tab.set("vel", key.value).unwrap();
+                        tab.set("is_note", true).unwrap();
                     },
                     MidiMessage::ControlChange(channel, cc) => {
                         tab.set("event", "control_change").unwrap();

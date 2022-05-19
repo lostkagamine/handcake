@@ -12,7 +12,7 @@ use input_linux::{
     KeyState,
     EventTime,
     SynchronizeEvent,
-    SynchronizeKind
+    SynchronizeKind, AbsoluteEvent
 };
 use parking_lot::Mutex;
 use super::ApiProvider;
@@ -31,6 +31,20 @@ fn i32_to_key(a: i32) -> Key {
         _ if a == (Key::ButtonThumbl as i32) => Key::ButtonThumbl, 
         _ if a == (Key::ButtonThumbr as i32) => Key::ButtonThumbr,
         _ => Key::Unknown
+    }
+}
+
+fn i32_to_absaxis(a: i32) -> AbsoluteAxis {
+    match a {
+        _ if a == (AbsoluteAxis::X as i32) => AbsoluteAxis::X,
+        _ if a == (AbsoluteAxis::Y as i32) => AbsoluteAxis::Y,
+        _ if a == (AbsoluteAxis::RX as i32) => AbsoluteAxis::RX,
+        _ if a == (AbsoluteAxis::RY as i32) => AbsoluteAxis::RY,
+        _ if a == (AbsoluteAxis::Hat2Y as i32) => AbsoluteAxis::Hat2Y,
+        _ if a == (AbsoluteAxis::Hat2X as i32) => AbsoluteAxis::Hat2X,
+        _ if a == (AbsoluteAxis::Hat0Y as i32) => AbsoluteAxis::Hat0Y,
+        _ if a == (AbsoluteAxis::Hat0X as i32) => AbsoluteAxis::Hat0X,
+        _ => AbsoluteAxis::Reserved,
     }
 }
 
@@ -165,21 +179,40 @@ impl ApiProvider for Gamepad {
                 ])?;
 
                 let tab = l.create_table()?;
-                let uinput = outest.clone();
-                tab.set("button", l.create_function(move |_l, (key, state): (i32, bool)| {
-                    let ui = uinput.lock();
-                    const ZERO: EventTime = EventTime::new(0, 0);
-                    let event = [
-                        *InputEvent::from(KeyEvent::new(ZERO, i32_to_key(key), match state {
-                            true => KeyState::PRESSED,
-                            false => KeyState::RELEASED
-                        })).as_raw(),
-                        *InputEvent::from(SynchronizeEvent::new(ZERO, SynchronizeKind::Report, 0)).as_raw(),
-                    ];
-                    ui.write(&event)?;
 
-                    Ok(())
-                })?)?;
+                {
+                    let uinput = outest.clone();
+                    tab.set("button", l.create_function(move |_l, (key, state): (i32, bool)| {
+                        let ui = uinput.lock();
+                        const ZERO: EventTime = EventTime::new(0, 0);
+                        let event = [
+                            *InputEvent::from(KeyEvent::new(ZERO, i32_to_key(key), match state {
+                                true => KeyState::PRESSED,
+                                false => KeyState::RELEASED
+                            })).as_raw(),
+                            *InputEvent::from(SynchronizeEvent::new(ZERO, SynchronizeKind::Report, 0)).as_raw(),
+                        ];
+                        ui.write(&event)?;
+    
+                        Ok(())
+                    })?)?;
+                }
+
+                {
+                    let uinput = outest.clone();
+                    tab.set("axis", l.create_function(move |_l, (axis, value): (i32, f32)| {
+                        let ui = uinput.lock();
+                        const ZERO: EventTime = EventTime::new(0, 0);
+                        let axis_value: i32 = (32768.0 * value).round() as i32;
+                        let event = [
+                            *InputEvent::from(AbsoluteEvent::new(ZERO, i32_to_absaxis(axis), axis_value)).as_raw(),
+                            *InputEvent::from(SynchronizeEvent::new(ZERO, SynchronizeKind::Report, 0)).as_raw(),
+                        ];
+                        ui.write(&event)?;
+
+                        Ok(())
+                    })?)?;
+                }
     
                 Ok(tab)
             })?)?;
