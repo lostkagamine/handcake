@@ -166,7 +166,7 @@ impl ApiProvider for Gamepad {
 
                 let tab = l.create_table()?;
                 let uinput = outest.clone();
-                tab.set("button", l.create_function(move |l, (key, state): (i32, bool)| {
+                tab.set("button", l.create_function(move |_l, (key, state): (i32, bool)| {
                     let ui = uinput.lock();
                     const ZERO: EventTime = EventTime::new(0, 0);
                     let event = [

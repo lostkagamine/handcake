@@ -5,7 +5,6 @@ use std::{path::{PathBuf, Path}, os::unix::prelude::OpenOptionsExt, sync::{Arc, 
 use clap::Parser;
 use midi_control::MidiMessage;
 use parking_lot::Mutex;
-use std::os::unix::io::AsRawFd;
 
 use crate::api::ApiProvider;
 
@@ -105,6 +104,7 @@ async fn main() -> anyhow::Result<()> {
 
         let lock = recv.lock();
         while let Ok(x) = lock.recv() {
+            #[allow(irrefutable_let_patterns)]
             if let Message::Midi(midi) = x {
                 let lua = lua.lock();
                 let on_midi_recv = lua.globals().get::<&str, mlua::Function>("on_midi_recv");
