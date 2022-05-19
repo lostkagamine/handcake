@@ -1,7 +1,38 @@
 use std::{sync::Arc, fs::File};
-use input_linux::{UInputHandle, EventKind, Key, AbsoluteAxis, InputId, AbsoluteInfoSetup, AbsoluteInfo};
+use input_linux::{
+    UInputHandle,
+    EventKind,
+    Key,
+    AbsoluteAxis,
+    InputId,
+    AbsoluteInfoSetup,
+    AbsoluteInfo,
+    InputEvent,
+    KeyEvent,
+    KeyState,
+    EventTime,
+    SynchronizeEvent,
+    SynchronizeKind
+};
 use parking_lot::Mutex;
 use super::ApiProvider;
+
+fn i32_to_key(a: i32) -> Key {
+    match a {
+        _ if a == (Key::ButtonSouth as i32) => Key::ButtonSouth, 
+        _ if a == (Key::ButtonEast as i32) => Key::ButtonEast, 
+        _ if a == (Key::ButtonWest as i32) => Key::ButtonWest, 
+        _ if a == (Key::ButtonNorth as i32) => Key::ButtonNorth, 
+        _ if a == (Key::ButtonStart as i32) => Key::ButtonStart, 
+        _ if a == (Key::ButtonSelect as i32) => Key::ButtonSelect, 
+        _ if a == (Key::ButtonMode as i32) => Key::ButtonMode, 
+        _ if a == (Key::ButtonTL as i32) => Key::ButtonTL, 
+        _ if a == (Key::ButtonTR as i32) => Key::ButtonTR, 
+        _ if a == (Key::ButtonThumbl as i32) => Key::ButtonThumbl, 
+        _ if a == (Key::ButtonThumbr as i32) => Key::ButtonThumbr,
+        _ => Key::Unknown
+    }
+}
 
 pub struct Gamepad;
 impl ApiProvider for Gamepad {
@@ -9,14 +40,38 @@ impl ApiProvider for Gamepad {
 
     fn register_api(l: &mlua::Lua, args: Self::Arguments) -> anyhow::Result<()> {
         let (uinput,) = args;
-        let uinput = Arc::new(Mutex::new(uinput));
+        let outest = Arc::new(Mutex::new(uinput));
 
         let tab = l.create_table()?;
 
+        tab.set("BTN_A", Key::ButtonSouth as i32)?;
+        tab.set("BTN_B", Key::ButtonEast as i32)?;
+        tab.set("BTN_X", Key::ButtonWest as i32)?;
+        tab.set("BTN_Y", Key::ButtonNorth as i32)?;
+        tab.set("BTN_MENU", Key::ButtonStart as i32)?;
+        tab.set("BTN_START", Key::ButtonStart as i32)?;
+        tab.set("BTN_VIEW", Key::ButtonSelect as i32)?;
+        tab.set("BTN_SELECT", Key::ButtonSelect as i32)?;
+        tab.set("BTN_MODE", Key::ButtonMode as i32)?;
+        tab.set("BTN_XBOX", Key::ButtonMode as i32)?;
+        tab.set("BTN_LB", Key::ButtonTL as i32)?;
+        tab.set("BTN_RB", Key::ButtonTR as i32)?;
+        tab.set("BTN_LS", Key::ButtonThumbl as i32)?;
+        tab.set("BTN_RS", Key::ButtonThumbr as i32)?;
+
+        tab.set("AXIS_LSTICK_X", AbsoluteAxis::X as i32)?;
+        tab.set("AXIS_LSTICK_Y", AbsoluteAxis::Y as i32)?;
+        tab.set("AXIS_RSTICK_X", AbsoluteAxis::RX as i32)?;
+        tab.set("AXIS_RSTICK_Y", AbsoluteAxis::RY as i32)?;
+        tab.set("AXIS_LTRIGGER", AbsoluteAxis::Hat2Y as i32)?;
+        tab.set("AXIS_RTRIGGER", AbsoluteAxis::Hat2X as i32)?;
+        tab.set("AXIS_DPAD_X", AbsoluteAxis::Hat0X as i32)?;
+        tab.set("AXIS_DPAD_Y", AbsoluteAxis::Hat0Y as i32)?;
+
         {
-            let uinput = uinput.clone();
+            let outer = outest.clone();
             tab.set("create", l.create_function(move |l, _: ()| {
-                let uinput = uinput.lock();
+                let uinput = outer.lock();
 
                 // https://docs.kernel.org/input/gamepad.html
 
@@ -108,8 +163,25 @@ impl ApiProvider for Gamepad {
                         info: JOYSTICK,
                     },
                 ])?;
+
+                let tab = l.create_table()?;
+                let uinput = outest.clone();
+                tab.set("button", l.create_function(move |l, (key, state): (i32, bool)| {
+                    let ui = uinput.lock();
+                    const ZERO: EventTime = EventTime::new(0, 0);
+                    let event = [
+                        *InputEvent::from(KeyEvent::new(ZERO, i32_to_key(key), match state {
+                            true => KeyState::PRESSED,
+                            false => KeyState::RELEASED
+                        })).as_raw(),
+                        *InputEvent::from(SynchronizeEvent::new(ZERO, SynchronizeKind::Report, 0)).as_raw(),
+                    ];
+                    ui.write(&event)?;
+
+                    Ok(())
+                })?)?;
     
-                Ok(())
+                Ok(tab)
             })?)?;
         }
 
