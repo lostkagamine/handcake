@@ -34,7 +34,7 @@ impl ApiProvider for Midi {
         let tab = l.create_table()?;
 
 
-        tab.set("open", l.create_function(|l, (portno,): (usize,)| {
+        tab.set("open", l.create_function(|_l, (portno,): (usize,)| {
             let mut midi_in = midir::MidiInput::new("handcake MIDI input").unwrap();
             midi_in.ignore(Ignore::None);
             let in_ports = midi_in.ports();

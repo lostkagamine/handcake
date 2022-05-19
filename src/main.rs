@@ -76,11 +76,7 @@ async fn main() -> anyhow::Result<()> {
     let a = lua.load(&script_text);
     let a = a.set_name(&script_path.to_string_lossy().as_bytes())?;
 
-    let globals = lua.globals();
-    // load the API here
-
-    api::midi::Midi::register_api(&lua);
-
+    api::midi::Midi::register_api(&lua).unwrap();
 
     debug!("Evaluating initial script");
 
