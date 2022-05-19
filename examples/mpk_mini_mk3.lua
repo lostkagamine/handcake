@@ -27,8 +27,29 @@ function on_midi_recv(evt)
     end
 
     if evt.is_note then
-        if evt.key == 40 then
+        if evt.key == 37 then
             pad.button(gamepad.BTN_A, evt.event == "note_on")
+        end
+        if evt.key == 36 then
+            pad.button(gamepad.BTN_B, evt.event == "note_on")
+        end
+        if evt.key == 40 then
+            pad.button(gamepad.BTN_Y, evt.event == "note_on")
+        end
+        if evt.key == 38 then
+            pad.button(gamepad.BTN_X, evt.event == "note_on")
+        end
+        if evt.key == 46 then
+            pad.button(gamepad.BTN_RB, evt.event == "note_on")
+        end
+        if evt.key == 44 then
+            pad.button(gamepad.BTN_LB, evt.event == "note_on")
+        end
+        if evt.key == 42 then
+            pad.axis(gamepad.AXIS_RTRIGGER, (evt.event == "note_on") and 1.0 or -1.0)
+        end
+        if evt.key == 54 then
+            pad.axis(gamepad.AXIS_LTRIGGER, (evt.event == "note_on") and 1.0 or -1.0)
         end
     end
 
