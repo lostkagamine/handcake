@@ -3,6 +3,7 @@
         "on_script_init",
         "midi",
         "gamepad",
-        "on_midi_recv"
+        "on_midi_recv",
+        "misc"
     ]
 }

@@ -86,6 +86,7 @@ async fn main() -> anyhow::Result<()> {
 
     api::midi::Midi::register_api(&lua, ()).unwrap();
     api::gamepad::Gamepad::register_api(&lua, (uinput,)).unwrap();
+    api::misc::Misc::register_api(&lua, ()).unwrap();
 
     debug!("Evaluating initial script");
 
@@ -101,8 +102,10 @@ async fn main() -> anyhow::Result<()> {
     let lua = Arc::new(Mutex::new(lua));
 
     debug!("Receiving messages");
+
+    let mut threads = vec![];
     
-    std::thread::spawn(move || {
+    threads.push(std::thread::spawn(move || {
         let (_, recv) = MESSAGE.clone();
 
         let lock = recv.lock();
@@ -162,8 +165,11 @@ async fn main() -> anyhow::Result<()> {
                 on_midi_recv.call::<_, ()>((tab,)).unwrap();
             }
         }
-    }).join().unwrap();
+    }));
 
+    for i in threads {
+        i.join().unwrap();
+    }
 
     Ok(())
 }

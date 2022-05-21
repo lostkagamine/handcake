@@ -1,5 +1,6 @@
 pub mod midi;
 pub mod gamepad;
+pub mod misc;
 
 pub trait ApiProvider {
     type Arguments;
