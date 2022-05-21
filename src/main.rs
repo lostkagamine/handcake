@@ -37,8 +37,11 @@ pub enum Message {
     Midi(MidiMessage),
 }
 
+type MessageSender = Arc<Mutex<Sender<Message>>>;
+type MessageReceiver = Arc<Mutex<Receiver<Message>>>;
+
 lazy_static::lazy_static! {
-    static ref MESSAGE: (Arc<Mutex<Sender<Message>>>, Arc<Mutex<Receiver<Message>>>) = {
+    static ref MESSAGE: (MessageSender, MessageReceiver) = {
         let (send, recv) = std::sync::mpsc::channel();
 
         (Arc::new(Mutex::new(send)), Arc::new(Mutex::new(recv)))
@@ -108,7 +111,7 @@ async fn main() -> anyhow::Result<()> {
             if let Message::Midi(midi) = x {
                 let lua = lua.lock();
                 let on_midi_recv = lua.globals().get::<&str, mlua::Function>("on_midi_recv");
-                if let Err(_) = on_midi_recv {
+                if on_midi_recv.is_err() {
                     continue;
                 }
                 let on_midi_recv = on_midi_recv.unwrap();
@@ -150,7 +153,7 @@ async fn main() -> anyhow::Result<()> {
                         tab.set("event", "pitch_bend").unwrap();
                         tab.set("value", true_val).unwrap();
                     },
-                    x @ _ => {
+                    x => {
                         debug!("Unknown MIDI message seen: {:?}", x);
                         continue;
                     },

@@ -48,7 +48,7 @@ impl ApiProvider for Midi {
                     &in_ports[0]
                 },
                 _ => {
-                    &in_ports.get(portno).unwrap()
+                    in_ports.get(portno).unwrap()
                 }
             };
 
