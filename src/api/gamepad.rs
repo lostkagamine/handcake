@@ -58,6 +58,7 @@ impl ApiProvider for Gamepad {
 
         let tab = l.create_table()?;
 
+        // Xbox names
         tab.set("BTN_A", Key::ButtonSouth as i32)?;
         tab.set("BTN_B", Key::ButtonEast as i32)?;
         tab.set("BTN_X", Key::ButtonWest as i32)?;
@@ -70,8 +71,37 @@ impl ApiProvider for Gamepad {
         tab.set("BTN_XBOX", Key::ButtonMode as i32)?;
         tab.set("BTN_LB", Key::ButtonTL as i32)?;
         tab.set("BTN_RB", Key::ButtonTR as i32)?;
+        tab.set("BTN_LT", Key::ButtonTL2 as i32)?;
+        tab.set("BTN_RT", Key::ButtonTR2 as i32)?;
         tab.set("BTN_LS", Key::ButtonThumbl as i32)?;
         tab.set("BTN_RS", Key::ButtonThumbr as i32)?;
+
+        // PlayStation names
+        tab.set("BTN_CROSS", Key::ButtonSouth as i32)?;
+        tab.set("BTN_CIRCLE", Key::ButtonEast as i32)?;
+        tab.set("BTN_SQUARE", Key::ButtonWest as i32)?;
+        tab.set("BTN_TRIANGLE", Key::ButtonNorth as i32)?;
+        tab.set("BTN_OPTIONS", Key::ButtonStart as i32)?;
+        tab.set("BTN_SHARE", Key::ButtonSelect as i32)?;
+        tab.set("BTN_PS", Key::ButtonMode as i32)?;
+        tab.set("BTN_L1", Key::ButtonTL as i32)?;
+        tab.set("BTN_R1", Key::ButtonTR as i32)?;
+        tab.set("BTN_L2", Key::ButtonTL2 as i32)?;
+        tab.set("BTN_R2", Key::ButtonTR2 as i32)?;
+        tab.set("BTN_L3", Key::ButtonThumbl as i32)?;
+        tab.set("BTN_R3", Key::ButtonThumbr as i32)?;
+
+        // Generic names
+        tab.set("BTN_SOUTH", Key::ButtonSouth as i32)?;
+        tab.set("BTN_EAST", Key::ButtonEast as i32)?;
+        tab.set("BTN_WEST", Key::ButtonWest as i32)?;
+        tab.set("BTN_NORTH", Key::ButtonNorth as i32)?;
+        tab.set("BTN_LBUMPER", Key::ButtonTL as i32)?;
+        tab.set("BTN_RBUMPER", Key::ButtonTR as i32)?;
+        tab.set("BTN_LTRIGGER", Key::ButtonTL2 as i32)?;
+        tab.set("BTN_RTRIGGER", Key::ButtonTR2 as i32)?;
+        tab.set("BTN_LTHUMB", Key::ButtonThumbl as i32)?;
+        tab.set("BTN_RTHUMB", Key::ButtonThumbr as i32)?;
 
         tab.set("AXIS_LSTICK_X", AbsoluteAxis::X as i32)?;
         tab.set("AXIS_LSTICK_Y", AbsoluteAxis::Y as i32)?;
@@ -84,7 +114,7 @@ impl ApiProvider for Gamepad {
 
         {
             let outer = outest.clone();
-            tab.set("create", l.create_function(move |l, _: ()| {
+            tab.set("create", l.create_function(move |l, (id,): (Option<String>,)| {
                 let uinput = outer.lock();
 
                 // https://docs.kernel.org/input/gamepad.html
@@ -101,6 +131,8 @@ impl ApiProvider for Gamepad {
 
                 uinput.set_keybit(Key::ButtonTL)?; // LB
                 uinput.set_keybit(Key::ButtonTR)?; // RB
+                uinput.set_keybit(Key::ButtonTL2)?; // LT
+                uinput.set_keybit(Key::ButtonTR2)?; // RT
 
                 uinput.set_keybit(Key::ButtonThumbl)?; // LS button (left stick click)
                 uinput.set_keybit(Key::ButtonThumbr)?; // RS button (right stick click)
@@ -120,14 +152,23 @@ impl ApiProvider for Gamepad {
                 uinput.set_absbit(AbsoluteAxis::Hat0X)?; // D-pad left/right (-/+)
                 uinput.set_absbit(AbsoluteAxis::Hat0Y)?; // D-pad up/down (-/+)
 
+                let mut vendor = 0x045e; // Microsoft Corp.
+                let mut product = 0x0b12; // Xbox Wireless Controller
+                if let Some(id) = id {
+                    let a = id.split(":").collect::<Vec<&str>>();
+                    let (ven, prd) = (a[0usize], a[1usize]);
+                    vendor = u16::from_str_radix(ven, 16).unwrap();
+                    product = u16::from_str_radix(prd, 16).unwrap();
+                }
+
                 // Create the uinput device
                 let input_id = InputId {
                     bustype: input_linux::sys::BUS_USB,
-                    vendor: 0x045e, // Microsoft Corporation
-                    product: 0x0b12, // Xbox Wireless Controller
+                    vendor,
+                    product,
                     version: 0,
                 };
-                let device_name = b"handcake Virtual Xbox Controller";
+                let device_name = b"handcake Virtual Controller";
 
                 const JOYSTICK: AbsoluteInfo = AbsoluteInfo {
                     flat: 0, // Deadzone

@@ -1,10 +1,16 @@
-use std::time::Duration;
+use std::{time::Duration, sync::Arc};
+
+use parking_lot::Mutex;
 
 use super::ApiProvider;
 
 lazy_static::lazy_static! {
     static ref START_TIME: std::time::Instant = {
         std::time::Instant::now()
+    };
+
+    static ref DELTA: Arc<Mutex<std::time::Instant>> = {
+        Arc::new(Mutex::new(std::time::Instant::now()))
     };
 }
 
@@ -23,8 +29,19 @@ impl ApiProvider for Misc {
         tab.set("time", l.create_function(|_l, _: ()| {
             let t = std::time::Instant::now();
             let elapsed = t.duration_since(*START_TIME);
+            let millis: u32 = elapsed.as_millis() as u32;
+            let millis: f64 = millis.into();
 
-            Ok(elapsed.as_millis() as f32 / 1000f32)
+            Ok(millis / 1000f64)
+        })?)?;
+
+        tab.set("delta_time", l.create_function(|_l, _: ()| {
+            let t = DELTA.lock().elapsed();
+            let millis = t.as_millis() as u32;
+            let millis: f64 = millis.into();
+            *DELTA.lock() = std::time::Instant::now();
+
+            Ok(millis / 1000f64)
         })?)?;
 
         l.globals().set("misc", tab)?;
